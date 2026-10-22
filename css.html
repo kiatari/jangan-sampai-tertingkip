@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jangan Sampai Tertangkap - Tugas Informatika</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 480px;
+            max-height: 850px;
+            margin: 0 auto;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            background: #1e293b;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Touch Swipe animations & Helpers */
+        .btn-action {
+            transition: all 0.1s ease;
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        /* Custom Scrollbar for Shop */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-slate-950 p-0 sm:p-4">
+
+    <div id="game-container" class="relative rounded-none sm:rounded-2xl overflow-hidden border-0 sm:border-4 border-slate-700">
+        
+        <!-- CANVAS GAME -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- HUD / IN-GAME UI -->
+        <div id="hud-ui" class="absolute top-0 left-0 right-0 p-4 flex justify-between items-start pointer-events-none hidden">
+            <!-- Stats -->
+            <div class="flex flex-col gap-2">
+                <div class="glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 text-yellow-400 font-bold text-sm shadow">
+                    <i class="fa-solid fa-coins"></i>
+                    <span id="hud-coins">0</span>
+                </div>
+                <div class="glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 text-cyan-400 font-bold text-sm shadow">
+                    <i class="fa-solid fa-gem"></i>
+                    <span id="hud-diamonds">0</span>
+                </div>
+            </div>
+
+            <!-- Score & Active Powerups -->
+            <div class="flex flex-col items-end gap-2">
+                <div class="glass-panel px-4 py-2 rounded-xl text-right">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Skor</div>
+                    <div id="hud-score" class="pixel-font text-lg text-emerald-400">0</div>
+                </div>
+                
+                <!-- Power-up indicators -->
+                <div id="powerup-timers" class="flex flex-col items-end gap-1"></div>
+            </div>
+        </div>
+
+        <!-- MENU UTAMA & PEMILIHAN KARAKTER -->
+        <div id="main-menu" class="absolute inset-0 glass-panel flex flex-col justify-between p-6 z-20">
+            <!-- Header -->
+            <div class="text-center mt-4">
+                <span class="text-xs font-semibold uppercase tracking-widest text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">Tugas Informatika Kelas 10-H</span>
+                <h1 class="text-2xl font-black tracking-tight text-white mt-2 leading-tight uppercase">JANGAN SAMPAI<br><span class="text-red-500">TERTANGGAP!</span></h1>
+                <p class="text-xs text-slate-400 mt-1">Oleh: Azkiya Dwiputri N</p>
+            </div>
+
+            <!-- Character Selection Display -->
+            <div class="flex flex-col items-center my-auto">
+                <div class="relative w-40 h-40 bg-slate-800/80 rounded-2xl border-2 border-slate-600 flex items-center justify-center overflow-hidden mb-4 shadow-inner">
+                    <div id="char-preview" class="w-full h-full flex items-center justify-center"></div>
+                    <span id="char-name-tag" class="absolute bottom-2 bg-slate-900/90 text-white text-xs font-bold px-3 py-0.5 rounded-full border border-slate-700">Ellie</span>
+                </div>
+
+                <!-- Select Buttons -->
+                <div class="flex gap-3 w-full max-w-xs">
+                    <button id="select-ellie" onclick="selectCharacter('ellie')" class="flex-1 py-2 rounded-xl font-bold text-xs bg-pink-600 border-2 border-pink-400 text-white shadow-lg transition-all flex flex-col items-center">
+                        <span>Ellie</span>
+                        <span class="text-[9px] opacity-80 font-normal">Gadis Rambut Sebahu</span>
+                    </button>
+                    <button id="select-lucas" onclick="selectCharacter('lucas')" class="flex-1 py-2 rounded-xl font-bold text-xs bg-slate-800 border-2 border-slate-600 text-slate-400 shadow-lg transition-all flex flex-col items-center">
+                        <span>Lucas</span>
+                        <span class="text-[9px] opacity-80 font-normal">Jaket Hitam & Mata Biru</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex flex-col gap-2 w-full max-w-xs mx-auto mb-2">
+                <div class="flex gap-2">
+                    <button onclick="openModal('shop-modal')" class="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 border border-amber-400 shadow-md">
+                        <i class="fa-solid fa-store"></i> Market
+                    </button>
+                    <button onclick="openModal('outfit-modal')" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 border border-indigo-400 shadow-md">
+                        <i class="fa-solid fa-shirt"></i> Outfit
+                    </button>
+                </div>
+                
+                <button onclick="startGame()" class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-extrabold text-lg rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 transition-all uppercase tracking-wide border border-emerald-300">
+                    <i class="fa-solid fa-play text-xl"></i> Mulai Main
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL MARKET / SHOP (Koin Emas) -->
+        <div id="shop-modal" class="absolute inset-0 glass-panel flex flex-col p-6 z-30 hidden">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
+                <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+                    <i class="fa-solid fa-store"></i> Market Power-Up
+                </h2>
+                <button onclick="closeModal('shop-modal')" class="text-slate-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Wallet Header -->
+            <div class="flex justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 mb-4 text-xs font-bold">
+                <span class="text-slate-400">Koin Milikmu:</span>
+                <span class="text-yellow-400 flex items-center gap-1">
+                    <i class="fa-solid fa-coins"></i> <span id="shop-coin-count">0</span>
+                </span>
+            </div>
+
+            <!-- Item List -->
+            <div class="flex-1 overflow-y-auto flex flex-col gap-3 pr-1">
+                <!-- Item 1: Energi -->
+                <div class="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-white">Penambah Energi</div>
+                            <div class="text-[10px] text-slate-400">Lari lebih cepat, skor bertambah cepat!</div>
+                        </div>
+                    </div>
+                    <button onclick="buyPowerup('energy', 30)" class="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1">
+                        30 <i class="fa-solid fa-coins text-[10px]"></i>
+                    </button>
+                </div>
+
+                <!-- Item 2: Donat Basi -->
+                <div class="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-pink-500/20 text-pink-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-cookie"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-white">Donat Basi</div>
+                            <div class="text-[10px] text-slate-400">Hentikan monster selama 20 detik</div>
+                        </div>
+                    </div>
+                    <button onclick="buyPowerup('donut', 30)" class="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1">
+                        30 <i class="fa-solid fa-coins text-[10px]"></i>
+                    </button>
+                </div>
+
+                <!-- Item 3: Mobil Kecil -->
+                <div class="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-car"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-white">Mobil Kecil</div>
+                            <div class="text-[10px] text-slate-400">Tahan rintangan selama 30 detik (Ketuk 2x)</div>
+                        </div>
+                    </div>
+                    <button onclick="buyPowerup('car', 35)" class="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1">
+                        35 <i class="fa-solid fa-coins text-[10px]"></i>
+                    </button>
+                </div>
+
+                <!-- Item 4: Roket -->
+                <div class="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-rocket"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-white">Roket Terbang</div>
+                            <div class="text-[10px] text-slate-400">Terbang
